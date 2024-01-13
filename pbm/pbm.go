@@ -1,4 +1,4 @@
-package main
+package pbm
 
 import (
 	"bufio"
@@ -172,7 +172,7 @@ func (pbm *PBM) SetMagicNumber(magicNumber string) {
 }
 func main() {
 	// Example usage:
-	pbm, err := ReadPBM("testImages/pbm/testP1.pbm")
+	pbm, err := ReadPBM("../testImages/pbm/testP1.pbm")
 	if err != nil {
 		fmt.Println("Error:", err)
 

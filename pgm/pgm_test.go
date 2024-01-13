@@ -1,4 +1,4 @@
-package Netpbm
+package pgm
 
 import (
 	"testing"

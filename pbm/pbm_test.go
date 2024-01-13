@@ -1,4 +1,4 @@
-package Netpbm
+package pbm
 
 import (
 	"os"

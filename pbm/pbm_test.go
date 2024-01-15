@@ -83,7 +83,7 @@ var imageDataFlop = []bool{
 func TestReadPBM(t *testing.T) {
 
 	// read the image with P1 magic number
-	pbm, err := ReadPBM("./testImages/pbm/testP1.pbm")
+	pbm, err := ReadPBM("../testImages/pbm/testP1.pbm")
 	if err != nil {
 		t.Error(err)
 	}

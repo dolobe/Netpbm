@@ -1,4 +1,4 @@
-package pbm
+package main
 
 import (
 	"bufio"
@@ -37,9 +37,15 @@ func ReadPBM(filename string) (*PBM, error) {
 		if magicNumber == "" {
 			magicNumber = fields[0]
 		} else if width == 0 {
-			width, _ = strconv.Atoi(fields[0])
+			width, err = strconv.Atoi(fields[0])
+			if err != nil {
+				return nil, err
+			}
 		} else if height == 0 {
-			height, _ = strconv.Atoi(fields[0])
+			height, err = strconv.Atoi(fields[0])
+			if err != nil {
+				return nil, err
+			}
 			break
 		}
 	}
@@ -70,7 +76,10 @@ func ReadPBM(filename string) (*PBM, error) {
 				break
 			}
 
-			b, _ := strconv.Atoi(val)
+			b, err := strconv.Atoi(val)
+			if err != nil {
+				return nil, err
+			}
 			data[i][j] = b != 0
 			j++
 		}
@@ -113,7 +122,7 @@ func (pbm *PBM) Save(filename string) error {
 	}
 
 	// Write the dimensions of the image
-	_, err = file.WriteString(fmt.Sprintf("%d %d\n", pbm.width, pbm.height))
+	_, err = fmt.Fprintf(file, "%d %d\n", pbm.width, pbm.height)
 	if err != nil {
 		return err
 	}
@@ -170,12 +179,12 @@ func (pbm *PBM) Flop() {
 func (pbm *PBM) SetMagicNumber(magicNumber string) {
 	pbm.magicNumber = magicNumber
 }
+
 func main() {
 	// Example usage:
 	pbm, err := ReadPBM("../testImages/pbm/testP1.pbm")
 	if err != nil {
 		fmt.Println("Error:", err)
-
 		return
 	}
 

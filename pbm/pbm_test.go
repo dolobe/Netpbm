@@ -3,8 +3,6 @@ package pbm
 import (
 	"os"
 	"testing"
-
-	"github.com/mkarten/Netpbm"
 )
 
 const imageWidth = 15

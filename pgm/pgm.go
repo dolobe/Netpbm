@@ -273,7 +273,7 @@ func (pbm *PBM) Save(filename string) error {
 	return nil
 }
 func main() {
-	pgm, err := ReadPGM(".pgm")
+	pgm, err := ReadPGM("../testImages/pbm/testP2.pgm")
 	if err != nil {
 		fmt.Println("Error reading PGM file:", err)
 		return

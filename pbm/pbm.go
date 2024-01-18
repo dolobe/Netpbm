@@ -1,4 +1,4 @@
-package main
+package pbm
 
 import (
 	"bufio"
@@ -14,6 +14,15 @@ type PBM struct {
 	magicNumber   string
 }
 
+// NewPBM crée une nouvelle instance de PBM.
+func NewPBM(data [][]bool, width, height int, magicNumber string) *PBM {
+	return &PBM{
+		data:        data,
+		width:       width,
+		height:      height,
+		magicNumber: magicNumber,
+	}
+}
 func ReadPBM(filename string) (*PBM, error) {
 	file, err := os.Open(filename)
 	if err != nil {
@@ -191,9 +200,7 @@ func main() {
 	width, height := pbm.Size()
 	fmt.Printf("Image size: %d x %d\n", width, height)
 
-	// Do other operations...
-
-	// Save the modified image
+	// Enregistrer l'image modifier
 	err = pbm.Save("modified.pbm")
 	if err != nil {
 		fmt.Println("Error:", err)

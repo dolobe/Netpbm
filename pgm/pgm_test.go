@@ -4,9 +4,9 @@ import (
 	"testing"
 )
 
-const imagePGMWidth = 15
-const imagePGMHeight = 15
-const imagePGMMax = 11
+const imageWidth = 15
+const imageHeight = 15
+const imageMax = 11
 
 var testData = []int{
 	11, 11, 11, 11, 11, 11, 11, 0, 0, 0, 0, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 0, 11, 11, 11, 11, 0, 11, 11, 11, 11, 11, 11, 11, 11, 0, 11, 11, 11, 11, 11, 11, 0, 11, 11, 11, 11, 11, 11, 11, 0, 11, 11, 11, 11, 8, 11, 0, 0, 0, 11,

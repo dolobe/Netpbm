@@ -2,6 +2,7 @@ package pbm
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"os"
 	"strconv"
@@ -9,20 +10,13 @@ import (
 )
 
 type PBM struct {
-	data          [][]bool
-	width, height int
-	magicNumber   string
+	data        [][]bool
+	width       int
+	height      int
+	magicNumber string
 }
 
-// NewPBM crée une nouvelle instance de PBM.
-func NewPBM(data [][]bool, width, height int, magicNumber string) *PBM {
-	return &PBM{
-		data:        data,
-		width:       width,
-		height:      height,
-		magicNumber: magicNumber,
-	}
-}
+// ReadPBM lit une image PBM à partir d'un fichier et renvoie une struct qui représente l'image.
 func ReadPBM(filename string) (*PBM, error) {
 	file, err := os.Open(filename)
 	if err != nil {
@@ -31,68 +25,53 @@ func ReadPBM(filename string) (*PBM, error) {
 	defer file.Close()
 
 	scanner := bufio.NewScanner(file)
-	var magicNumber string
-	var width, height int
-	var data [][]bool
 
-	for scanner.Scan() {
-		line := scanner.Text()
-		if strings.HasPrefix(line, "#") {
-			continue // Skip comments
-		}
+	// Read magic number
+	if !scanner.Scan() {
+		return nil, errors.New("missing magic number")
+	}
+	magicNumber := scanner.Text()
 
-		fields := strings.Fields(line)
-
-		if magicNumber == "" {
-			magicNumber = fields[0]
-		} else if width == 0 {
-			width, err = strconv.Atoi(fields[0])
-			if err != nil {
-				return nil, err
-			}
-		} else if height == 0 {
-			height, err = strconv.Atoi(fields[0])
-			if err != nil {
-				return nil, err
-			}
-			break
-		}
+	// Read width and height
+	if !scanner.Scan() {
+		return nil, errors.New("missing width")
+	}
+	width, err := strconv.Atoi(scanner.Text())
+	if err != nil {
+		return nil, err
 	}
 
-	if magicNumber != "P1" && magicNumber != "P4" {
-		return nil, fmt.Errorf("unsupported magic number: %s", magicNumber)
+	if !scanner.Scan() {
+		return nil, errors.New("missing height")
+	}
+	height, err := strconv.Atoi(scanner.Text())
+	if err != nil {
+		return nil, err
 	}
 
-	data = make([][]bool, height)
+	// Read pixel values
+	data := make([][]bool, height)
 	for i := range data {
 		data[i] = make([]bool, width)
-	}
-
-	var i, j int
-	for scanner.Scan() {
-		line := scanner.Text()
-		if strings.HasPrefix(line, "#") {
-			continue // Skip comments
+		lineValues := strings.Fields(scanner.Text())
+		if len(lineValues) != width {
+			fmt.Printf("Error: line %d has %d values instead of %d\n", i+1, len(lineValues), width)
+			return nil, errors.New("incorrect number of pixel values in the line")
 		}
-
-		fields := strings.Fields(line)
-		for _, val := range fields {
-			if j >= width {
-				j = 0
-				i++
-			}
-			if i >= height {
-				break
-			}
-
-			b, err := strconv.Atoi(val)
+		for j := range data[i] {
+			value, err := strconv.Atoi(lineValues[j])
 			if err != nil {
 				return nil, err
 			}
-			data[i][j] = b != 0
-			j++
+			data[i][j] = value != 0
+		}
+		if !scanner.Scan() {
+			fmt.Println("Error: pixel data missing at line", i+2)
+			return nil, errors.New("missing pixel data")
 		}
 	}
+
+	// Create and return the PBM structure
 	return &PBM{
 		data:        data,
 		width:       width,
@@ -101,22 +80,22 @@ func ReadPBM(filename string) (*PBM, error) {
 	}, nil
 }
 
-// Size returns the width and height of the image.
+// Size renvoie la largeur et la hauteur de l'image.
 func (pbm *PBM) Size() (int, int) {
 	return pbm.width, pbm.height
 }
 
-// At returns the value of the pixel at (x, y).
+// At renvoie la valeur du pixel à la position (x, y).
 func (pbm *PBM) At(x, y int) bool {
 	return pbm.data[y][x]
 }
 
-// Set sets the value of the pixel at (x, y).
+// Set définit la valeur du pixel à la position (x, y).
 func (pbm *PBM) Set(x, y int, value bool) {
 	pbm.data[y][x] = value
 }
 
-// Save saves the PBM image to a file and returns an error if there was a problem.
+// Save enregistre l'image PBM dans un fichier et renvoie une erreur en cas de problème.
 func (pbm *PBM) Save(filename string) error {
 	file, err := os.Create(filename)
 	if err != nil {
@@ -157,7 +136,7 @@ func (pbm *PBM) Save(filename string) error {
 	return nil
 }
 
-// Invert inverts the colors of the PBM image.
+// Invert inverse les couleurs de l'image PBM.
 func (pbm *PBM) Invert() {
 	for i := range pbm.data {
 		for j := range pbm.data[i] {
@@ -166,7 +145,7 @@ func (pbm *PBM) Invert() {
 	}
 }
 
-// Flip flips the PBM image horizontally.
+// Flip retourne l'image PBM horizontalement.
 func (pbm *PBM) Flip() {
 	for i := 0; i < pbm.height; i++ {
 		for j := 0; j < pbm.width/2; j++ {
@@ -175,7 +154,7 @@ func (pbm *PBM) Flip() {
 	}
 }
 
-// Flop flops the PBM image vertically.
+// Flop retourne l'image PBM verticalement.
 func (pbm *PBM) Flop() {
 	for i := 0; i < pbm.height/2; i++ {
 		for j := 0; j < pbm.width; j++ {
@@ -184,14 +163,14 @@ func (pbm *PBM) Flop() {
 	}
 }
 
-// SetMagicNumber sets the magic number of the PBM image.
+// SetMagicNumber définit le nombre magique de l'image PBM.
 func (pbm *PBM) SetMagicNumber(magicNumber string) {
 	pbm.magicNumber = magicNumber
 }
 
 func main() {
 	// Example usage:
-	pbm, err := ReadPBM("../testImages/pbm/testP1.pbm")
+	pbm, err := ReadPBM("testP1.pbm")
 	if err != nil {
 		fmt.Println("Error:", err)
 		return

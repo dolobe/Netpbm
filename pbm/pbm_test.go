@@ -83,7 +83,7 @@ var imageDataFlop = []bool{
 func TestReadPBM(t *testing.T) {
 
 	// read the image with P1 magic number
-	pbm, err := Netpbm.ReadPBM("./testImages/pbm/testP1.pbm")
+	pbm, err := ReadPBM("./testImages/pbm/testP1.pbm")
 	if err != nil {
 		t.Error(err)
 	}
@@ -109,7 +109,7 @@ func TestReadPBM(t *testing.T) {
 	}
 
 	// read the image with P4 magic number
-	pbm, err = Netpbm.ReadPBM("./testImages/pbm/testP4.pbm")
+	pbm, err = ReadPBM("./testImages/pbm/testP4.pbm")
 	if err != nil {
 		t.Error(err)
 	}
@@ -135,7 +135,7 @@ func TestReadPBM(t *testing.T) {
 }
 
 func TestSize(t *testing.T) {
-	pbm, err := Netpbm.ReadPBM("./testImages/pbm/testP1.pbm")
+	pbm, err := ReadPBM("./testImages/pbm/testP1.pbm")
 	if err != nil {
 		t.Error(err)
 	}
@@ -146,7 +146,7 @@ func TestSize(t *testing.T) {
 }
 
 func TestAt(t *testing.T) {
-	pbm, err := Netpbm.ReadPBM("./testImages/pbm/testP1.pbm")
+	pbm, err := ReadPBM("./testImages/pbm/testP1.pbm")
 	if err != nil {
 		t.Error(err)
 	}
@@ -156,7 +156,7 @@ func TestAt(t *testing.T) {
 }
 
 func TestSet(t *testing.T) {
-	pbm, err := Netpbm.ReadPBM("./testImages/pbm/testP1.pbm")
+	pbm, err := ReadPBM("./testImages/pbm/testP1.pbm")
 	if err != nil {
 		t.Error(err)
 	}
@@ -167,7 +167,7 @@ func TestSet(t *testing.T) {
 }
 
 func TestSave(t *testing.T) {
-	pbm, err := Netpbm.ReadPBM("./testImages/pbm/testP1.pbm")
+	pbm, err := ReadPBM("./testImages/pbm/testP1.pbm")
 	if err != nil {
 		t.Error(err)
 	}
@@ -176,7 +176,7 @@ func TestSave(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	pbm2, err := Netpbm.ReadPBM("./testImages/pbm/testP1Save.pbm")
+	pbm2, err := ReadPBM("./testImages/pbm/testP1Save.pbm")
 	if err != nil {
 		t.Error(err)
 	}
@@ -198,7 +198,7 @@ func TestSave(t *testing.T) {
 		}
 	}
 
-	pbm, err = Netpbm.ReadPBM("./testImages/pbm/testP4.pbm")
+	pbm, err = ReadPBM("./testImages/pbm/testP4.pbm")
 	if err != nil {
 		t.Error(err)
 	}
@@ -207,7 +207,7 @@ func TestSave(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	pbm2, err = Netpbm.ReadPBM("./testImages/pbm/testP4Save.pbm")
+	pbm2, err = ReadPBM("./testImages/pbm/testP4Save.pbm")
 	if err != nil {
 		t.Error(err)
 	}
@@ -240,7 +240,7 @@ func TestSave(t *testing.T) {
 }
 
 func TestInvert(t *testing.T) {
-	pbm, err := Netpbm.ReadPBM("./testImages/pbm/testP1.pbm")
+	pbm, err := ReadPBM("./testImages/pbm/testP1.pbm")
 	if err != nil {
 		t.Error(err)
 	}
@@ -256,7 +256,7 @@ func TestInvert(t *testing.T) {
 }
 
 func TestFlip(t *testing.T) {
-	pbm, err := Netpbm.ReadPBM("./testImages/pbm/testP1.pbm")
+	pbm, err := ReadPBM("./testImages/pbm/testP1.pbm")
 	if err != nil {
 		t.Error(err)
 	}
@@ -272,7 +272,7 @@ func TestFlip(t *testing.T) {
 }
 
 func TestFlop(t *testing.T) {
-	pbm, err := Netpbm.ReadPBM("./testImages/pbm/testP1.pbm")
+	pbm, err := ReadPBM("./testImages/pbm/testP1.pbm")
 	if err != nil {
 		t.Error(err)
 	}
@@ -288,7 +288,7 @@ func TestFlop(t *testing.T) {
 }
 
 func TestSetMagicNumber(t *testing.T) {
-	pbm, err := Netpbm.ReadPBM("./testImages/pbm/testP1.pbm")
+	pbm, err := ReadPBM("testP1.pbm")
 	if err != nil {
 		t.Error(err)
 	}

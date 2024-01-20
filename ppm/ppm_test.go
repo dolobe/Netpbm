@@ -9,6 +9,11 @@ const imagePPMWidth = 15
 const imagePPMHeight = 15
 const imagePPMMax = 255
 
+var (
+	imageWidth  = 100
+	imageHeight = 100
+)
+
 var imagePPMData = []Pixel{
 	{255, 255, 255}, {255, 255, 255}, {255, 255, 255}, {255, 255, 255}, {255, 255, 255}, {255, 255, 255}, {255, 255, 255}, {0, 0, 0}, {0, 0, 0}, {0, 0, 0}, {0, 0, 0}, {255, 255, 255}, {255, 255, 255}, {255, 255, 255}, {255, 255, 255},
 	{255, 255, 255}, {255, 255, 255}, {255, 255, 255}, {255, 255, 255}, {255, 255, 255}, {255, 255, 255}, {0, 0, 0}, {255, 255, 14}, {255, 255, 14}, {255, 255, 14}, {255, 255, 14}, {0, 0, 0}, {255, 255, 255}, {255, 255, 255}, {255, 255, 255},
@@ -278,14 +283,16 @@ func TestReadPPM(t *testing.T) {
 	if ppm.max != imagePPMMax {
 		t.Error("Max value not read correctly")
 	}
-	for i := 0; i < imageWidth*imageHeight; i++ {
-		x := i % imageWidth
-		y := i / imageWidth
+	for i := 0; i < imagePPMWidth*imagePPMHeight; i++ {
+		x := i % imagePPMWidth
+		y := i / imagePPMWidth
 		if ppm.data[y][x] != imagePPMData[i] {
 			t.Errorf("Pixel at (%d, %d) not read correctly", x, y)
 		}
 	}
-	ppm, err = ReadPPM("./testImages/ppm/testP6.ppm")
+
+	// Répéter les mêmes vérifications pour le fichier "testP6.ppm"
+	ppm, err = ReadPPM("testP6.ppm")
 	if err != nil {
 		t.Error(err)
 	}
@@ -301,9 +308,9 @@ func TestReadPPM(t *testing.T) {
 	if ppm.max != imagePPMMax {
 		t.Error("Max value not read correctly")
 	}
-	for i := 0; i < imageWidth*imageHeight; i++ {
-		x := i % imageWidth
-		y := i / imageWidth
+	for i := 0; i < imagePPMWidth*imagePPMHeight; i++ {
+		x := i % imagePPMWidth
+		y := i / imagePPMWidth
 		if ppm.data[y][x] != imagePPMData[i] {
 			t.Errorf("Pixel at (%d, %d) not read correctly", x, y)
 		}
@@ -311,7 +318,7 @@ func TestReadPPM(t *testing.T) {
 }
 
 func TestPPMSize(t *testing.T) {
-	ppm, err := ReadPPM("./testImages/ppm/testP3.ppm")
+	ppm, err := ReadPPM("testP3.ppm")
 	if err != nil {
 		t.Error(err)
 	}
@@ -322,7 +329,7 @@ func TestPPMSize(t *testing.T) {
 }
 
 func TestPPMAt(t *testing.T) {
-	ppm, err := ReadPPM("./testImages/ppm/testP3.ppm")
+	ppm, err := ReadPPM("testP3.ppm")
 	if err != nil {
 		t.Error(err)
 	}
@@ -336,7 +343,7 @@ func TestPPMAt(t *testing.T) {
 }
 
 func TestPPMSet(t *testing.T) {
-	ppm, err := ReadPPM("./testImages/ppm/testP3.ppm")
+	ppm, err := ReadPPM("testP3.ppm")
 	if err != nil {
 		t.Error(err)
 	}
@@ -348,16 +355,16 @@ func TestPPMSet(t *testing.T) {
 }
 
 func TestPPMSave(t *testing.T) {
-	ppm, err := ReadPPM("./testImages/ppm/testP3.ppm")
+	ppm, err := ReadPPM("testP3.ppm")
 	if err != nil {
 		t.Error(err)
 	}
 	ppm.SetMagicNumber("P3")
-	err = ppm.Save("./testImages/ppm/testP3a.ppm")
+	err = ppm.Save("testP3a.ppm")
 	if err != nil {
 		t.Error(err)
 	}
-	ppm, err = ReadPPM("./testImages/ppm/testP3a.ppm")
+	ppm, err = ReadPPM("testP3a.ppm")
 	if err != nil {
 		t.Error(err)
 	}
@@ -380,16 +387,16 @@ func TestPPMSave(t *testing.T) {
 			t.Errorf("Pixel at (%d, %d) not read correctly", x, y)
 		}
 	}
-	ppm, err = ReadPPM("./testImages/ppm/testP6.ppm")
+	ppm, err = ReadPPM("testP6.ppm")
 	if err != nil {
 		t.Error(err)
 	}
 	ppm.SetMagicNumber("P6")
-	err = ppm.Save("./testImages/ppm/testP6a.ppm")
+	err = ppm.Save("testP6a.ppm")
 	if err != nil {
 		t.Error(err)
 	}
-	ppm, err = ReadPPM("./testImages/ppm/testP6a.ppm")
+	ppm, err = ReadPPM("testP6a.ppm")
 	if err != nil {
 		t.Error(err)
 	}
@@ -413,18 +420,18 @@ func TestPPMSave(t *testing.T) {
 		}
 	}
 	// remove the test files
-	err = os.Remove("./testImages/ppm/testP3a.ppm")
+	err = os.Remove("testP3a.ppm")
 	if err != nil {
 		t.Error(err)
 	}
-	err = os.Remove("./testImages/ppm/testP6a.ppm")
+	err = os.Remove("testP6a.ppm")
 	if err != nil {
 		t.Error(err)
 	}
 }
 
 func TestPPMInvert(t *testing.T) {
-	ppm, err := ReadPPM("./testImages/ppm/testP3.ppm")
+	ppm, err := ReadPPM("testP3.ppm")
 	if err != nil {
 		t.Error(err)
 	}
@@ -440,7 +447,7 @@ func TestPPMInvert(t *testing.T) {
 }
 
 func TestPPMFlip(t *testing.T) {
-	ppm, err := ReadPPM("./testImages/ppm/testP3.ppm")
+	ppm, err := ReadPPM("testP3.ppm")
 	if err != nil {
 		t.Error(err)
 	}
@@ -455,7 +462,7 @@ func TestPPMFlip(t *testing.T) {
 }
 
 func TestPPMFlop(t *testing.T) {
-	ppm, err := ReadPPM("./testImages/ppm/testP3.ppm")
+	ppm, err := ReadPPM("testP3.ppm")
 	if err != nil {
 		t.Error(err)
 	}
@@ -470,7 +477,7 @@ func TestPPMFlop(t *testing.T) {
 }
 
 func TestPPMSetMagicNumber(t *testing.T) {
-	ppm, err := ReadPPM("./testImages/ppm/testP3.ppm")
+	ppm, err := ReadPPM("testP3.ppm")
 	if err != nil {
 		t.Error(err)
 	}
@@ -485,7 +492,7 @@ func TestPPMSetMagicNumber(t *testing.T) {
 }
 
 func TestPPMSetMaxValue(t *testing.T) {
-	ppm, err := ReadPPM("./testImages/ppm/testP3.ppm")
+	ppm, err := ReadPPM("testP3.ppm")
 	if err != nil {
 		t.Error(err)
 	}
@@ -510,7 +517,7 @@ func TestPPMSetMaxValue(t *testing.T) {
 }
 
 func TestPPMRotate90CW(t *testing.T) {
-	ppm, err := ReadPPM("./testImages/ppm/testP3.ppm")
+	ppm, err := ReadPPM("testP3.ppm")
 	if err != nil {
 		t.Error(err)
 	}
@@ -531,7 +538,7 @@ func TestPPMRotate90CW(t *testing.T) {
 }
 
 func TestPPMToPGM(t *testing.T) {
-	ppm, err := ReadPPM("./testImages/ppm/testP3.ppm")
+	ppm, err := ReadPPM("testP3.ppm")
 	if err != nil {
 		t.Error(err)
 	}
@@ -558,7 +565,7 @@ func TestPPMToPGM(t *testing.T) {
 }
 
 func TestPPMToPBM(t *testing.T) {
-	ppm, err := ReadPPM("./testImages/ppm/testP3.ppm")
+	ppm, err := ReadPPM("testP3.ppm")
 	if err != nil {
 		t.Error(err)
 	}
@@ -575,14 +582,16 @@ func TestPPMToPBM(t *testing.T) {
 	for i := 0; i < imageWidth*imageHeight; i++ {
 		x := i % imageWidth
 		y := i / imageWidth
-		if pbm.data[y][x] != (uint8((int(imagePPMData[i].R)+int(imagePPMData[i].G)+int(imagePPMData[i].B))/3) < ppm.max/2) {
-			t.Errorf("Pixel at (%d, %d) not converted correctly wanted %t got %t", x, y, uint8((int(imagePPMData[i].R)+int(imagePPMData[i].G)+int(imagePPMData[i].B))/3) > ppm.max/2, pbm.data[y][x])
+		convertedValue := uint8((int(imagePPMData[i].R) + int(imagePPMData[i].G) + int(imagePPMData[i].B)) / 3)
+		threshold := uint8(int(ppm.max) / 2)
+		if pbm.data[y][x] != (convertedValue < threshold) {
+			t.Errorf("Pixel at (%d, %d) not converted correctly wanted %t got %t", x, y, convertedValue > threshold, pbm.data[y][x])
 		}
 	}
 }
 
 func TestPPMDrawLine(t *testing.T) {
-	ppm, err := ReadPPM("./testImages/ppm/blank.ppm")
+	ppm, err := ReadPPM("blank.ppm")
 	if err != nil {
 		t.Error(err)
 	}
@@ -599,7 +608,7 @@ func TestPPMDrawLine(t *testing.T) {
 }
 
 func TestPPMDrawRectangle(t *testing.T) {
-	ppm, err := ReadPPM("./testImages/ppm/blank.ppm")
+	ppm, err := ReadPPM("blank.ppm")
 	if err != nil {
 		t.Error(err)
 	}
@@ -616,7 +625,7 @@ func TestPPMDrawRectangle(t *testing.T) {
 }
 
 func TestPPMDrawFilledRectangle(t *testing.T) {
-	ppm, err := ReadPPM("./testImages/ppm/blank.ppm")
+	ppm, err := ReadPPM("blank.ppm")
 	if err != nil {
 		t.Error(err)
 	}
@@ -633,7 +642,7 @@ func TestPPMDrawFilledRectangle(t *testing.T) {
 }
 
 func TestPPMDrawCircle(t *testing.T) {
-	ppm, err := ReadPPM("./testImages/ppm/blank.ppm")
+	ppm, err := ReadPPM("blank.ppm")
 	if err != nil {
 		t.Error(err)
 	}
@@ -649,7 +658,7 @@ func TestPPMDrawCircle(t *testing.T) {
 }
 
 func TestPPMDrawFilledCircle(t *testing.T) {
-	ppm, err := ReadPPM("./testImages/ppm/blank.ppm")
+	ppm, err := ReadPPM("blank.ppm")
 	if err != nil {
 		t.Error(err)
 	}
@@ -665,7 +674,7 @@ func TestPPMDrawFilledCircle(t *testing.T) {
 }
 
 func TestPPMDrawTriangle(t *testing.T) {
-	ppm, err := ReadPPM("./testImages/ppm/blank.ppm")
+	ppm, err := ReadPPM("blank.ppm")
 	if err != nil {
 		t.Error(err)
 	}
@@ -681,7 +690,7 @@ func TestPPMDrawTriangle(t *testing.T) {
 }
 
 func TestPPMDrawFilledTriangle(t *testing.T) {
-	ppm, err := ReadPPM("./testImages/ppm/blank.ppm")
+	ppm, err := ReadPPM("blank.ppm")
 	if err != nil {
 		t.Error(err)
 	}
@@ -697,7 +706,7 @@ func TestPPMDrawFilledTriangle(t *testing.T) {
 }
 
 func TestPPMDrawPolygon(t *testing.T) {
-	ppm, err := ReadPPM("./testImages/ppm/blank.ppm")
+	ppm, err := ReadPPM("blank.ppm")
 	if err != nil {
 		t.Error(err)
 	}
@@ -718,7 +727,7 @@ func TestPPMDrawPolygon(t *testing.T) {
 }
 
 func TestPPMDrawFilledPolygon(t *testing.T) {
-	ppm, err := ReadPPM("./testImages/ppm/blank.ppm")
+	ppm, err := ReadPPM("blank.ppm")
 	if err != nil {
 		t.Error(err)
 	}

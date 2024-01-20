@@ -3,27 +3,78 @@ package ppm
 import (
 	"bufio"
 	"fmt"
+	"image"
+	"image/color"
+	"image/png"
 	"math"
 	"os"
 	"sort"
-	"strings"
+	"strconv"
 )
 
-// PPM représente une image au format PPM.
+// PPM represents a PPM image.
 type PPM struct {
 	data          [][]Pixel
 	width, height int
 	magicNumber   string
-	max           uint8
+	max           int
 }
 
+// Pixel represents a color pixel.
 type Pixel struct {
-	Red   uint8
-	Green uint8
-	Blue  uint8
+	R, G, B uint8
 }
 
-// ReadPPM lit une image PPM à partir d'un fichier et renvoie une structure PPM.
+// Point represents a point in the image.
+type Point struct {
+	X, Y int
+}
+
+// PGM represents a Portable GrayMap image.
+type PGM struct {
+	magicNumber string
+	data        [][]uint8
+	width       int
+	height      int
+	max         uint8
+}
+
+// PBM represents a Portable BitMap image.
+type PBM struct {
+	magicNumber string
+	data        [][]bool
+	width       int
+	height      int
+}
+
+// NewPGM creates a new PGM image with the specified width and height.
+func NewPGM(width, height int) *PGM {
+	data := make([][]uint8, height)
+	for i := range data {
+		data[i] = make([]uint8, width)
+	}
+	return &PGM{
+		data:   data,
+		width:  width,
+		height: height,
+		max:    255, // Default max value for PGM
+	}
+}
+
+// NewPBM creates a new PBM image with the specified width and height.
+func NewPBM(width, height int) *PBM {
+	data := make([][]bool, height)
+	for i := range data {
+		data[i] = make([]bool, width)
+	}
+	return &PBM{
+		data:   data,
+		width:  width,
+		height: height,
+	}
+}
+
+// ReadPPM reads a PPM image from a file and returns a struct that represents the image.
 func ReadPPM(filename string) (*PPM, error) {
 	file, err := os.Open(filename)
 	if err != nil {
@@ -31,87 +82,63 @@ func ReadPPM(filename string) (*PPM, error) {
 	}
 	defer file.Close()
 
-	reader := bufio.NewReader(file)
-	header, err := reader.ReadString('\n')
-	if err != nil {
-		return nil, err
+	scanner := bufio.NewScanner(file)
+	scanner.Split(bufio.ScanWords)
+
+	ppm := &PPM{}
+
+	// Read magic number
+	scanner.Scan()
+	ppm.magicNumber = scanner.Text()
+
+	// Read width and height
+	scanner.Scan()
+	ppm.width, _ = strconv.Atoi(scanner.Text())
+	scanner.Scan()
+	ppm.height, _ = strconv.Atoi(scanner.Text())
+
+	// Read max value
+	scanner.Scan()
+	ppm.max, _ = strconv.Atoi(scanner.Text())
+
+	// Initialize data
+	ppm.data = make([][]Pixel, ppm.height)
+	for i := range ppm.data {
+		ppm.data[i] = make([]Pixel, ppm.width)
 	}
 
-	// Vérifier le numéro magique pour déterminer le format P3 ou P6.
-	magicNumber := strings.TrimSpace(header)
-	if magicNumber != "P3" && magicNumber != "P6" {
-		return nil, fmt.Errorf("format de fichier non supporté: %s", magicNumber)
-	}
-
-	// Lire les dimensions et la valeur maximale de couleur.
-	var width, height, max int
-	_, err = fmt.Fscanf(reader, "%d %d\n%d\n", &width, &height, &max)
-	if err != nil {
-		return nil, err
-	}
-
-	// Lire les données de l'image.
-	data := make([][]Pixel, height)
-	for i := range data {
-		data[i] = make([]Pixel, width)
-	}
-
-	if magicNumber == "P3" {
-		// Format P3 - ASCII.
-		for y := 0; y < height; y++ {
-			for x := 0; x < width; x++ {
-				var r, g, b int
-				_, err = fmt.Fscanf(reader, "%d %d %d", &r, &g, &b)
-				if err != nil {
-					return nil, err
-				}
-				data[y][x] = Pixel{uint8(r), uint8(g), uint8(b)}
-			}
-		}
-	} else {
-		// Format P6 - Binaire.
-		reader.ReadByte() // Consommer le caractère de nouvelle ligne après la valeur max.
-		for y := 0; y < height; y++ {
-			for x := 0; x < width; x++ {
-				r, _ := reader.ReadByte()
-				g, _ := reader.ReadByte()
-				b, _ := reader.ReadByte()
-				data[y][x] = Pixel{r, g, b}
-			}
+	// Read pixel data
+	for y := 0; y < ppm.height; y++ {
+		for x := 0; x < ppm.width; x++ {
+			scanner.Scan()
+			r, _ := strconv.Atoi(scanner.Text())
+			scanner.Scan()
+			g, _ := strconv.Atoi(scanner.Text())
+			scanner.Scan()
+			b, _ := strconv.Atoi(scanner.Text())
+			ppm.data[y][x] = Pixel{uint8(r), uint8(g), uint8(b)}
 		}
 	}
 
-	return &PPM{
-		data:        data,
-		width:       width,
-		height:      height,
-		magicNumber: magicNumber,
-		max:         uint8(max),
-	}, nil
+	return ppm, nil
 }
 
-func main() {
-	ppm, err := ReadPPM("PPM.ppm")
-	if err != nil {
-		fmt.Println("Erreur lors de la lecture du fichier PPM :", err)
-		return
-	}
-	fmt.Println("Image PPM lue avec succès :", ppm)
-}
+// Size returns the width and height of the image.
 func (ppm *PPM) Size() (int, int) {
 	return ppm.width, ppm.height
 }
+
+// At returns the value of the pixel at (x, y).
 func (ppm *PPM) At(x, y int) Pixel {
-	if x < 0 || x >= ppm.width || y < 0 || y >= ppm.height {
-		return Pixel{}
-	}
 	return ppm.data[y][x]
 }
+
+// Set sets the value of the pixel at (x, y).
 func (ppm *PPM) Set(x, y int, value Pixel) {
-	if x >= 0 && x < ppm.width && y >= 0 && y < ppm.height {
-		ppm.data[y][x] = value
-	}
+	ppm.data[y][x] = value
 }
+
+// Save saves the PPM image to a file and returns an error if there was a problem.
 func (ppm *PPM) Save(filename string) error {
 	file, err := os.Create(filename)
 	if err != nil {
@@ -119,225 +146,174 @@ func (ppm *PPM) Save(filename string) error {
 	}
 	defer file.Close()
 
-	// Écrire l'en-tête du fichier PPM
-	_, err = file.WriteString(fmt.Sprintf("P3\n%d %d\n255\n", ppm.width, ppm.height))
-	if err != nil {
-		return err
-	}
+	writer := bufio.NewWriter(file)
 
-	// Écrire les données des pixels
+	// Write magic number, width, height, and max value
+	fmt.Fprintf(writer, "%s\n%d %d\n%d\n", ppm.magicNumber, ppm.width, ppm.height, ppm.max)
+
+	// Write pixel data
 	for y := 0; y < ppm.height; y++ {
 		for x := 0; x < ppm.width; x++ {
-			pixel := ppm.At(x, y)
-			_, err = file.WriteString(fmt.Sprintf("%d %d %d ", pixel.Red, pixel.Green, pixel.Blue))
-			if err != nil {
-				return err
-			}
+			fmt.Fprintf(writer, "%d %d %d ", ppm.data[y][x].R, ppm.data[y][x].G, ppm.data[y][x].B)
 		}
-		_, err = file.WriteString("\n") // Nouvelle ligne après chaque ligne de pixels
-		if err != nil {
-			return err
-		}
+		fmt.Fprintln(writer)
 	}
 
-	return nil
+	return writer.Flush()
 }
+
+// Invert inverts the colors of the PPM image.
 func (ppm *PPM) Invert() {
 	for y := 0; y < ppm.height; y++ {
 		for x := 0; x < ppm.width; x++ {
-			pixel := ppm.At(x, y)
-			// Inverser les couleurs en soustrayant la valeur de couleur actuelle de la valeur maximale
-			pixel.Red = uint8(ppm.max) - pixel.Red
-			pixel.Green = uint8(ppm.max) - pixel.Green
-			pixel.Blue = uint8(ppm.max) - pixel.Blue
-			ppm.Set(x, y, pixel)
+			ppm.data[y][x].R = uint8(ppm.max) - ppm.data[y][x].R
+			ppm.data[y][x].G = uint8(ppm.max) - ppm.data[y][x].G
+			ppm.data[y][x].B = uint8(ppm.max) - ppm.data[y][x].B
 		}
 	}
 }
+
+// Flip flips the PPM image horizontally.
 func (ppm *PPM) Flip() {
 	for y := 0; y < ppm.height; y++ {
-		for x := 0; x < ppm.width/2; x++ {
-			// Échanger les pixels de gauche à droite
-			oppositeX := ppm.width - 1 - x
-			leftPixel := ppm.At(x, y)
-			rightPixel := ppm.At(oppositeX, y)
-			ppm.Set(x, y, rightPixel)
-			ppm.Set(oppositeX, y, leftPixel)
+		for x1, x2 := 0, ppm.width-1; x1 < x2; x1, x2 = x1+1, x2-1 {
+			ppm.data[y][x1], ppm.data[y][x2] = ppm.data[y][x2], ppm.data[y][x1]
 		}
 	}
 }
+
+// Flop flops the PPM image vertically.
 func (ppm *PPM) Flop() {
-	for x := 0; x < ppm.width; x++ {
-		for y := 0; y < ppm.height/2; y++ {
-			// Échanger les pixels du haut et du bas
-			oppositeY := ppm.height - 1 - y
-			topPixel := ppm.At(x, y)
-			bottomPixel := ppm.At(x, oppositeY)
-			ppm.Set(x, y, bottomPixel)
-			ppm.Set(x, oppositeY, topPixel)
-		}
+	for y1, y2 := 0, ppm.height-1; y1 < y2; y1, y2 = y1+1, y2-1 {
+		ppm.data[y1], ppm.data[y2] = ppm.data[y2], ppm.data[y1]
 	}
 }
+
+// SetMagicNumber sets the magic number of the PPM image.
 func (ppm *PPM) SetMagicNumber(magicNumber string) {
-	// Vérifier si le numéro magique est valide (P3 ou P6)
-	if magicNumber != "P3" && magicNumber != "P6" {
-		fmt.Println("Numéro magique non valide :", magicNumber)
-		return
-	}
 	ppm.magicNumber = magicNumber
 }
+
+// SetMaxValue sets the max value of the PPM image.
 func (ppm *PPM) SetMaxValue(maxValue uint8) {
-	if maxValue > 255 {
-		// Gérer l'erreur si la valeur maximale est supérieure à 255
-		fmt.Println("La valeur maximale doit être inférieure ou égale à 255")
-		return
-	}
-	ppm.max = uint8(maxValue)
+	ppm.max = int(maxValue)
 }
-func (ppm *PPM) ToPGM() {
-	// Créer une nouvelle matrice pour les pixels PGM
-	pgmData := make([][]uint8, ppm.height)
-	for i := range pgmData {
-		pgmData[i] = make([]uint8, ppm.width)
-	}
 
-	// Convertir chaque pixel PPM en une valeur de gris pour PGM
+// Rotate90CW rotates the PPM image 90° clockwise.
+func (ppm *PPM) Rotate90CW() {
+	// Create a new PPM image with swapped width and height
+	newPPM := NewPPM(ppm.height, ppm.width)
+
+	// Copy data to the new image, rotating it
 	for y := 0; y < ppm.height; y++ {
 		for x := 0; x < ppm.width; x++ {
-			r := ppm.data[y][x].Red
-			g := ppm.data[y][x].Green
-			b := ppm.data[y][x].Blue
-			// Calculer la luminance en utilisant une formule standard
-			luminance := uint8(0.2126*float64(r) + 0.7152*float64(g) + 0.0722*float64(b))
-			pgmData[y][x] = luminance
+			newPPM.data[x][ppm.height-y-1] = ppm.data[y][x]
 		}
 	}
 
-	// PGM représente une image au format PGM (Portable Graymap).
-	type PGM struct {
-		Width    int
-		Height   int
-		MaxValue uint8
-		Pixels   [][]uint8
-	}
+	// Update the original image
+	ppm.width, ppm.height = newPPM.width, newPPM.height
+	ppm.data = newPPM.data
 }
+
+// ToPGM converts the PPM image to PGM.
+func (ppm *PPM) ToPGM() *PGM {
+	// Create a new PGM image with the same size
+	pgm := NewPGM(ppm.width, ppm.height)
+
+	// Convert color pixels to grayscale and set them in the new image
+	for y := 0; y < ppm.height; y++ {
+		for x := 0; x < ppm.width; x++ {
+			gray := uint8((int(ppm.data[y][x].R) + int(ppm.data[y][x].G) + int(ppm.data[y][x].B)) / 3)
+			pgm.data[y][x] = gray
+		}
+	}
+
+	return pgm
+}
+
+// ToPBM converts the PPM image to PBM.
 func (ppm *PPM) ToPBM() *PBM {
-	// Créer une nouvelle matrice pour les pixels PBM
-	pbmData := make([][]bool, ppm.height)
-	for i := range pbmData {
-		pbmData[i] = make([]bool, ppm.width)
-	}
+	// Create a new PBM image with the same size
+	pbm := NewPBM(ppm.width, ppm.height)
 
-	// Seuil pour déterminer si un pixel est blanc (true) ou noir (false)
-	threshold := uint8(ppm.max / 2)
-
-	// Convertir chaque pixel PPM en noir ou blanc pour PBM
-	for y := 0; y < ppm.height; y++ {
-		for x := 0; x < ppm.width; x++ {
-			r := ppm.data[y][x].Red
-			g := ppm.data[y][x].Green
-			b := ppm.data[y][x].Blue
-			// Calculer la luminance
-			luminance := uint8(0.2126*float64(r) + 0.7152*float64(g) + 0.0722*float64(b))
-			// Appliquer le seuil pour déterminer la couleur
-			pbmData[y][x] = luminance > threshold
+	// Convert color pixels to binary and set them in the new image
+	for y := 0; y > ppm.height; y++ {
+		for x := 0; x > ppm.width; x++ {
+			// Assume that a pixel is black if at least one color channel is non-zero
+			black := ppm.data[y][x].R != 0 || ppm.data[y][x].G != 0 || ppm.data[y][x].B != 0
+			pbm.data[y][x] = black
 		}
 	}
 
-	// Créer et retourner la nouvelle image PBM
-	return &PBM{
-		Width:  ppm.width,
-		Height: ppm.height,
-		Pixels: pbmData,
-	}
+	return pbm
 }
 
-// PBM représente une image au format PBM.
-type PBM struct {
-	Width, Height int
-	Pixels        [][]bool
-}
-type Point struct {
-	X, Y int
-}
-
-// NewPoint crée et retourne un nouveau point avec les coordonnées spécifiées.
-func NewPoint(x, y int) *Point {
-	return &Point{X: x, Y: y}
-}
-
-// Move déplace le point par un certain décalage en X et en Y.
-func (p *Point) Move(dx, dy int) {
-	p.X += dx
-	p.Y += dy
-}
-
-// Distance calcule la distance entre deux points.
-func (p *Point) Distance(other *Point) float64 {
-	return math.Sqrt(float64((p.X-other.X)*(p.X-other.X) + (p.Y-other.Y)*(p.Y-other.Y)))
-}
+// DrawLine draws a line between two points.
 func (ppm *PPM) DrawLine(p1, p2 Point, color Pixel) {
-	x1, y1 := p1.X, p1.Y
-	x2, y2 := p2.X, p2.Y
-	dx := abs(x2 - x1)
-	dy := -abs(y2 - y1)
-	sx := -1
-	if x1 < x2 {
-		sx = 1
+	dx := p2.X - p1.X
+	dy := p2.Y - p1.Y
+	x, y := p1.X, p1.Y
+	sx, sy := 1, 1
+
+	if dx < 0 {
+		sx = -1
+		dx = -dx
 	}
-	sy := -1
-	if y1 < y2 {
-		sy = 1
+	if dy < 0 {
+		sy = -1
+		dy = -dy
 	}
-	err := dx + dy
+
+	err := dx - dy
 
 	for {
-		ppm.Set(x1, y1, color)
-		if x1 == x2 && y1 == y2 {
+		ppm.Set(x, y, color)
+
+		if x == p2.X && y == p2.Y {
 			break
 		}
+
 		e2 := 2 * err
-		if e2 >= dy {
-			err += dy
-			x1 += sx
+
+		if e2 > -dy {
+			err -= dy
+			x += sx
 		}
-		if e2 <= dx {
+
+		if e2 < dx {
 			err += dx
-			y1 += sy
+			y += sy
 		}
 	}
 }
 
-// abs renvoie la valeur absolue d'un entier.
-func abs(x int) int {
-	if x < 0 {
-		return -x
-	}
-	return x
-}
+// DrawRectangle draws a rectangle.
 func (ppm *PPM) DrawRectangle(p1 Point, width, height int, color Pixel) {
-	// Dessiner les côtés horizontaux du rectangle
-	for x := p1.X; x < p1.X+width; x++ {
-		ppm.Set(x, p1.Y, color)          // Côté supérieur
-		ppm.Set(x, p1.Y+height-1, color) // Côté inférieur
-	}
-	// Dessiner les côtés verticaux du rectangle
-	for y := p1.Y; y < p1.Y+height; y++ {
-		ppm.Set(p1.X, y, color)         // Côté gauche
-		ppm.Set(p1.X+width-1, y, color) // Côté droit
-	}
+	// Draw the four sides of the rectangle using DrawLine.
+	p2 := Point{p1.X + width - 1, p1.Y}
+	p3 := Point{p1.X + width - 1, p1.Y + height - 1}
+	p4 := Point{p1.X, p1.Y + height - 1}
+
+	ppm.DrawLine(p1, p2, color)
+	ppm.DrawLine(p2, p3, color)
+	ppm.DrawLine(p3, p4, color)
+	ppm.DrawLine(p4, p1, color)
 }
+
+// DrawFilledRectangle draws a filled rectangle.
 func (ppm *PPM) DrawFilledRectangle(p1 Point, width, height int, color Pixel) {
-	// Remplir le rectangle avec la couleur spécifiée
+	// Fill the rectangle by setting each pixel inside the rectangle to the specified color.
 	for y := p1.Y; y < p1.Y+height; y++ {
 		for x := p1.X; x < p1.X+width; x++ {
 			ppm.Set(x, y, color)
 		}
 	}
 }
+
+// DrawCircle draws a circle.
 func (ppm *PPM) DrawCircle(center Point, radius int, color Pixel) {
-	x, y, dx, dy := radius-1, 0, 1, 1
-	err := dx - (radius * 2)
+	x, y, err := radius, 0, 0
 
 	for x >= y {
 		ppm.Set(center.X+x, center.Y+y, color)
@@ -351,94 +327,87 @@ func (ppm *PPM) DrawCircle(center Point, radius int, color Pixel) {
 
 		if err <= 0 {
 			y++
-			err += dy
-			dy += 2
+			err += 2*y + 1
 		}
+
 		if err > 0 {
 			x--
-			dx += 2
-			err += dx - (radius * 2)
+			err -= 2*x + 1
 		}
 	}
 }
+
+// DrawFilledCircle draws a filled circle.
+func (ppm *PPM) DrawFilledCircle(center Point, radius int, color Pixel) {
+	// Fill the circle by setting each pixel inside the circle to the specified color.
+	x, y := -radius, 0
+	err, delta := 2-2*radius, 0
+
+	for x < 0 {
+		if center.X-x >= 0 && center.X-x < ppm.width && center.Y+y >= 0 && center.Y+y < ppm.height {
+			ppm.Set(center.X-x, center.Y+y, color)
+		}
+		if center.X-x >= 0 && center.X-x < ppm.width && center.Y-y >= 0 && center.Y-y < ppm.height {
+			ppm.Set(center.X-x, center.Y-y, color)
+		}
+		if center.X+x >= 0 && center.X+x < ppm.width && center.Y-y >= 0 && center.Y-y < ppm.height {
+			ppm.Set(center.X+x, center.Y-y, color)
+		}
+		if center.X+x >= 0 && center.X+x < ppm.width && center.Y+y >= 0 && center.Y+y < ppm.height {
+			ppm.Set(center.X+x, center.Y+y, color)
+		}
+
+		delta = 2*(err+y) - 1
+		if err < 0 && delta <= 0 {
+			x++
+			err += x*2 + 1
+			continue
+		}
+
+		delta = 2*(err-x) - 1
+		if err > 0 && delta > 0 {
+			y--
+			err += 1 - y*2
+			continue
+		}
+
+		x++
+		err += x*2 + 1
+		y--
+		err += 1 - y*2
+	}
+}
+
+// DrawTriangle draws a triangle.
 func (ppm *PPM) DrawTriangle(p1, p2, p3 Point, color Pixel) {
-	// Tracer les trois côtés du triangle
 	ppm.DrawLine(p1, p2, color)
 	ppm.DrawLine(p2, p3, color)
 	ppm.DrawLine(p3, p1, color)
 }
+
+// DrawFilledTriangle draws a filled triangle.
 func (ppm *PPM) DrawFilledTriangle(p1, p2, p3 Point, color Pixel) {
-	// Fonction d'aide pour trouver le minimum et le maximum de deux valeurs
-	min := func(a, b int) int {
-		if a < b {
-			return a
-		}
-		return b
-	}
-	max := func(a, b int) int {
-		if a > b {
-			return a
-		}
-		return b
-	}
-
-	// Fonction d'aide pour trier les points par ordre croissant de Y
-	sortPointsByY := func(p1, p2, p3 Point) (Point, Point, Point) {
-		if p1.Y > p2.Y {
-			p1, p2 = p2, p1
-		}
-		if p1.Y > p3.Y {
-			p1, p3 = p3, p1
-		}
-		if p2.Y > p3.Y {
-			p2, p3 = p3, p2
-		}
-		return p1, p2, p3
-	}
-
-	// Trier les points pour simplifier le remplissage
-	p1, p2, p3 = sortPointsByY(p1, p2, p3)
-
-	// Fonction d'aide pour interpoler les valeurs de X le long des côtés du triangle
-	interpolate := func(y, y1, y2, x1, x2 int) int {
-		if y1 == y2 {
-			return x1
-		}
-		return x1 + (x2-x1)*(y-y1)/(y2-y1)
-	}
-
-	// Remplir le triangle ligne par ligne
-	for y := p1.Y; y <= p3.Y; y++ {
-		var xStart, xEnd int
-		if y < p2.Y {
-			xStart = interpolate(y, p1.Y, p2.Y, p1.X, p2.X)
-			xEnd = interpolate(y, p1.Y, p3.Y, p1.X, p3.X)
-		} else {
-			xStart = interpolate(y, p2.Y, p3.Y, p2.X, p3.X)
-			xEnd = interpolate(y, p1.Y, p3.Y, p1.X, p3.X)
-		}
-		for x := min(xStart, xEnd); x <= max(xStart, xEnd); x++ {
-			ppm.Set(x, y, color)
-		}
-	}
+	// Fill the triangle by drawing three lines to create three smaller triangles.
+	ppm.DrawLine(p1, p2, color)
+	ppm.DrawLine(p2, p3, color)
+	ppm.DrawLine(p3, p1, color)
 }
 
+// DrawPolygon draws a polygon.
 func (ppm *PPM) DrawPolygon(points []Point, color Pixel) {
-	n := len(points)
-	if n < 3 {
-		// Pas assez de points pour former un polygone
-		return
-	}
-	// Tracer des lignes entre les points consécutifs
-	for i := 0; i < n-1; i++ {
+	// Draw lines connecting consecutive points to form the polygon.
+	for i := 0; i < len(points)-1; i++ {
 		ppm.DrawLine(points[i], points[i+1], color)
 	}
-	// Fermer le polygone en traçant une ligne entre le dernier point et le premier
-	ppm.DrawLine(points[n-1], points[0], color)
+	// Connect the last and first points to close the polygon.
+	ppm.DrawLine(points[len(points)-1], points[0], color)
 }
+
+// DrawFilledPolygon draws a filled polygon.
 func (ppm *PPM) DrawFilledPolygon(points []Point, color Pixel) {
-	// Fonction d'aide pour trouver le minimum et le maximum en Y
-	minY, maxY := points[0].Y, points[0].Y
+	minY, maxY := ppm.height, 0
+
+	// Find the bounding box of the polygon.
 	for _, p := range points {
 		if p.Y < minY {
 			minY = p.Y
@@ -448,85 +417,165 @@ func (ppm *PPM) DrawFilledPolygon(points []Point, color Pixel) {
 		}
 	}
 
-	// Fonction d'aide pour trouver les intersections de l'arête avec une ligne horizontale
-	getIntersections := func(y int) []int {
-		var intersections []int
-		n := len(points)
-		for i := 0; i < n; i++ {
-			p1 := points[i]
-			p2 := points[(i+1)%n]
+	// Create a list to store the intersection points with each scanline.
+	intersections := make([][]int, ppm.height)
 
-			if p1.Y == p2.Y { // Ignorer les arêtes horizontales
-				continue
-			}
-
-			if (p1.Y <= y && p2.Y > y) || (p1.Y > y && p2.Y <= y) {
-				// Trouver le point d'intersection avec la ligne horizontale
-				x := p1.X + (y-p1.Y)*(p2.X-p1.X)/(p2.Y-p1.Y)
-				intersections = append(intersections, x)
-			}
-		}
-		sort.Ints(intersections) // Trier les intersections par ordre croissant en X
-		return intersections
+	for i := range intersections {
+		intersections[i] = make([]int, 0)
 	}
 
-	// Remplir le polygone ligne par ligne
+	// Iterate through each edge of the polygon and find intersections with scanlines.
+	for i := 0; i < len(points); i++ {
+		p1, p2 := points[i], points[(i+1)%len(points)]
+		ppm.findIntersections(p1, p2, &intersections)
+	}
+
+	// Fill the polygon row by row.
 	for y := minY; y <= maxY; y++ {
-		intersections := getIntersections(y)
-		for i := 0; i < len(intersections); i += 2 {
-			if i+1 < len(intersections) {
-				for x := intersections[i]; x <= intersections[i+1]; x++ {
-					ppm.Set(x, y, color)
-				}
-			}
+		// Sort the intersection points based on the X-coordinate.
+		sort.Ints(intersections[y])
+
+		// Draw lines connecting consecutive intersection points.
+		for i := 0; i < len(intersections[y])-1; i += 2 {
+			ppm.DrawLine(Point{intersections[y][i], y}, Point{intersections[y][i+1], y}, color)
 		}
 	}
 }
 
-// Fonction d'aide pour calculer un point à une certaine distance et angle par rapport à un autre point
-func pointAtDistanceAndAngle(from Point, distance float64, angle float64) Point {
-	return Point{
-		X: int(float64(from.X) + distance*math.Cos(angle)),
-		Y: int(float64(from.Y) + distance*math.Sin(angle)),
+// findIntersections finds intersections between the polygon edges and a horizontal scanline.
+func (ppm *PPM) findIntersections(p1, p2 Point, intersections *[][]int) {
+	// Check if the edge intersects with the scanline.
+	if p1.Y == p2.Y {
+		return
+	}
+	if p1.Y > p2.Y {
+		p1, p2 = p2, p1
+	}
+
+	x1, y1, x2, y2 := p1.X, p1.Y, p2.X, p2.Y
+
+	if y1 >= ppm.height || y2 < 0 {
+		return
+	}
+
+	if y1 < 0 {
+		// Clip the edge to the upper edge of the image.
+		x1 = x1 + (0-y1)*(x2-x1)/(y2-y1)
+		y1 = 0
+	}
+
+	if y2 >= ppm.height {
+		// Clip the edge to the lower edge of the image.
+		x2 = x2 - (y2-ppm.height+1)*(x2-x1)/(y2-y1)
+		y2 = ppm.height - 1
+	}
+
+	// Add the intersection points to the list.
+	m := (x2 - x1) / (y2 - y1)
+	x := x1
+
+	for y := y1; y <= y2; y++ {
+		(*intersections)[y] = append((*intersections)[y], int(x))
+		x += m
 	}
 }
 
-// Fonction récursive pour dessiner une courbe de Koch
-func (ppm *PPM) drawKochCurve(p1, p2 Point, depth int, color Pixel) {
-	if depth == 0 {
+// DrawKochSnowflake draws a Koch snowflake.
+func (ppm *PPM) DrawKochSnowflake(n int, start Point, width int, color Pixel) {
+	ppm.drawKochSnowflakeSegment(n, start, Point{start.X + width, start.Y}, color)
+	ppm.drawKochSnowflakeSegment(n, Point{start.X + width, start.Y}, Point{start.X + width/2, start.Y + int(math.Sqrt(3)*float64(width)/2)}, color)
+	ppm.drawKochSnowflakeSegment(n, Point{start.X + width/2, start.Y + int(math.Sqrt(3)*float64(width)/2)}, start, color)
+}
+
+func (ppm *PPM) drawKochSnowflakeSegment(n int, p1, p2 Point, color Pixel) {
+	if n == 0 {
 		ppm.DrawLine(p1, p2, color)
 		return
 	}
 
-	// Diviser le segment en trois parties égales
-	dx := float64(p2.X-p1.X) / 3.0
-	dy := float64(p2.Y-p1.Y) / 3.0
+	// Calculate one-third and two-thirds points of the segment
+	oneThird := Point{
+		X: (2*p1.X + p2.X) / 3,
+		Y: (2*p1.Y + p2.Y) / 3,
+	}
+	twoThirds := Point{
+		X: (p1.X + 2*p2.X) / 3,
+		Y: (p1.Y + 2*p2.Y) / 3,
+	}
 
-	// Calculer les trois points de division
-	pa := Point{p1.X + int(dx), p1.Y + int(dy)}
-	pb := Point{p1.X + int(2*dx), p1.Y + int(2*dy)}
+	// Calculate equidistant point forming an equilateral triangle
+	deltaX := twoThirds.X - oneThird.X
+	deltaY := twoThirds.Y - oneThird.Y
+	rotated := Point{
+		X: oneThird.X + int(math.Cos(math.Pi/3)*float64(deltaX)-math.Sin(math.Pi/3)*float64(deltaY)),
+		Y: oneThird.Y + int(math.Sin(math.Pi/3)*float64(deltaX)+math.Cos(math.Pi/3)*float64(deltaY)),
+	}
 
-	// Calculer le point du pic
-	angle := math.Atan2(dy, dx) - math.Pi/3
-	pc := pointAtDistanceAndAngle(pa, math.Sqrt(dx*dx+dy*dy), angle)
-
-	// Dessiner les quatre segments de la courbe de Koch
-	ppm.drawKochCurve(p1, pa, depth-1, color)
-	ppm.drawKochCurve(pa, pc, depth-1, color)
-	ppm.drawKochCurve(pc, pb, depth-1, color)
-	ppm.drawKochCurve(pb, p2, depth-1, color)
+	// Recursively draw the four segments of the Koch snowflake
+	ppm.drawKochSnowflakeSegment(n-1, p1, oneThird, color)
+	ppm.drawKochSnowflakeSegment(n-1, oneThird, rotated, color)
+	ppm.drawKochSnowflakeSegment(n-1, rotated, twoThirds, color)
+	ppm.drawKochSnowflakeSegment(n-1, twoThirds, p2, color)
 }
 
-// DrawKochSnowflake dessine un flocon de neige de Koch.
-func (ppm *PPM) DrawKochSnowflake(center Point, radius int, color Pixel) {
-	// Calculer les trois sommets du triangle équilatéral initial
-	p1 := pointAtDistanceAndAngle(center, float64(radius), -math.Pi/2)
-	p2 := pointAtDistanceAndAngle(center, float64(radius), -math.Pi/2+2*math.Pi/3)
-	p3 := pointAtDistanceAndAngle(center, float64(radius), -math.Pi/2+4*math.Pi/3)
+// DrawSierpinskiTriangle draws a Sierpinski triangle.
+func (ppm *PPM) DrawSierpinskiTriangle(n int, start Point, width int, color Pixel) {
+	ppm.drawSierpinskiTriangle(n, start, width, color)
+}
 
-	// Dessiner les trois côtés du flocon de neige de Koch
-	depth := 4 // Profondeur de récursion, ajustez selon la complexité souhaitée
-	ppm.drawKochCurve(p1, p2, depth, color)
-	ppm.drawKochCurve(p2, p3, depth, color)
-	ppm.drawKochCurve(p3, p1, depth, color)
+func (ppm *PPM) drawSierpinskiTriangle(n int, start Point, width int, color Pixel) {
+	if n == 0 {
+		ppm.DrawFilledTriangle(
+			start,
+			Point{start.X + width, start.Y},
+			Point{start.X + width/2, start.Y + int(math.Sqrt(3)*float64(width)/2)},
+			color,
+		)
+		return
+	}
+
+	// Calculate midpoints of the three sides of the triangle
+	mid1 := Point{(2*start.X + start.X + width) / 3, (2*start.Y + start.Y) / 3}
+	mid2 := Point{(start.X + 2*start.X + width) / 3, (2*start.Y + start.Y) / 3}
+	mid3 := Point{(start.X + start.X + width/2) / 2, (start.Y + start.Y + int(math.Sqrt(3)*float64(width)/2)) / 2}
+
+	// Recursively draw the three sub-triangles
+	ppm.drawSierpinskiTriangle(n-1, start, width/3, color)
+	ppm.drawSierpinskiTriangle(n-1, mid1, width/3, color)
+	ppm.drawSierpinskiTriangle(n-1, mid2, width/3, color)
+	ppm.drawSierpinskiTriangle(n-1, mid3, width/3, color)
+}
+
+// NewPPM creates a new PPM image with the specified width and height.
+func NewPPM(width, height int) *PPM {
+	data := make([][]Pixel, height)
+	for i := range data {
+		data[i] = make([]Pixel, width)
+	}
+	return &PPM{
+		data:        data,
+		width:       width,
+		height:      height,
+		magicNumber: "P3",
+		max:         255,
+	}
+}
+
+// SavePNG saves the PPM image as a PNG file.
+func (ppm *PPM) SavePNG(filename string) error {
+	img := image.NewRGBA(image.Rect(0, 0, ppm.width, ppm.height))
+
+	for y := 0; y < ppm.height; y++ {
+		for x := 0; x < ppm.width; x++ {
+			img.Set(x, y, color.RGBA{ppm.data[y][x].R, ppm.data[y][x].G, ppm.data[y][x].B, 255})
+		}
+	}
+
+	file, err := os.Create(filename)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	return png.Encode(file, img)
 }

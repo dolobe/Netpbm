@@ -204,11 +204,11 @@ func TestSave(t *testing.T) {
 		t.Error(err)
 	}
 	pbm.SetMagicNumber("P4")
-	err = pbm.Save("testImages/pbm/testP4Save.pbm")
+	err = pbm.Save("testP4Save.pbm")
 	if err != nil {
 		t.Error(err)
 	}
-	pbm2, err = ReadPBM("testImages/pbm/testP4Save.pbm")
+	pbm2, err = ReadPBM("testP4Save.pbm")
 	if err != nil {
 		t.Error(err)
 	}
@@ -230,11 +230,11 @@ func TestSave(t *testing.T) {
 		}
 	}
 	// remove the test files
-	err = os.Remove("testImages/pbm/testP1Save.pbm")
+	err = os.Remove("testP1Save.pbm")
 	if err != nil {
 		t.Error(err)
 	}
-	err = os.Remove("testImages/pbm/testP4Save.pbm")
+	err = os.Remove("testP4Save.pbm")
 	if err != nil {
 		t.Error(err)
 	}

@@ -2,10 +2,8 @@ package pbm
 
 import (
 	"bufio"
-	"errors"
 	"fmt"
 	"os"
-	"strconv"
 	"strings"
 )
 
@@ -38,39 +36,76 @@ func ReadPBM(filename string) (*PBM, error) {
 	}
 	defer file.Close()
 
-	scanner := bufio.NewScanner(file)
-	var magicNumber string
+	reader := bufio.NewReader(file)
 
-	// Read the magic number
-	if scanner.Scan() {
-		magicNumber = scanner.Text()
-	} else {
-		return nil, errors.New("missing magic number")
-	}
-
-	// Determine the width, height, and image format
-	var width, height int
-	var data [][]bool
-
-	switch magicNumber {
-	case "P1", "P4":
-		width, height, data, err = readP1P4(scanner)
-	case "P2", "P5":
-		return nil, errors.New("P2 and P5 formats are not supported")
-	default:
-		return nil, errors.New("unsupported magic number")
-	}
-
+	// Read magic number
+	magicNumber, err := reader.ReadString('\n')
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error reading magic number: %v", err)
+	}
+	magicNumber = strings.TrimSpace(magicNumber)
+	if magicNumber != "P1" && magicNumber != "P4" {
+		return nil, fmt.Errorf("invalid magic number: %s", magicNumber)
 	}
 
-	return &PBM{
-		data:        data,
+	// Read dimensions
+	dimensions, err := reader.ReadString('\n')
+	if err != nil {
+		return nil, fmt.Errorf("error reading dimensions: %v", err)
+	}
+	var width, height int
+	_, err = fmt.Sscanf(strings.TrimSpace(dimensions), "%d %d", &width, &height)
+	if err != nil {
+		return nil, fmt.Errorf("invalid dimensions: %v", err)
+	}
+
+	data := make([][]bool, height)
+
+	for i := range data {
+		data[i] = make([]bool, width)
+	}
+
+	if magicNumber == "P1" {
+		// Read P1 format (ASCII)
+		for y := 0; y < height; y++ {
+			line, err := reader.ReadString('\n')
+			if err != nil {
+				return nil, fmt.Errorf("error reading data at row %d: %v", y, err)
+			}
+			fields := strings.Fields(line)
+			for x, field := range fields {
+				if x >= width {
+					return nil, fmt.Errorf("index out of range at row %d", y)
+				}
+				data[y][x] = field == "1"
+			}
+		}
+	} else if magicNumber == "P4" {
+		// Read P4 format (binary)
+		bytesPerRow := (width + 7) / 8 // Number of bytes needed to store a row
+		for y := 0; y < height; y++ {
+			row := make([]byte, bytesPerRow)
+			_, err := reader.Read(row)
+			if err != nil {
+				return nil, fmt.Errorf("error reading data at row %d: %v", y, err)
+			}
+			for x := 0; x < width; x++ {
+				byteIndex := x / 8
+				bitIndex := 7 - (x % 8)
+				data[y][x] = (row[byteIndex]>>bitIndex)&1 == 1
+			}
+		}
+	}
+
+	// Create and return the PBM struct
+	pbmImage := &PBM{
+		magicNumber: magicNumber,
 		width:       width,
 		height:      height,
-		magicNumber: magicNumber,
-	}, nil
+		data:        data,
+	}
+
+	return pbmImage, nil
 }
 
 // Size returns the width and height of the image.
@@ -88,7 +123,7 @@ func (pbm *PBM) Set(x, y int, value bool) {
 	pbm.data[y][x] = value
 }
 
-// Save saves the PBM image to a file and returns an error if there was a problem.
+// Save saves the PBM image to a file.
 func (pbm *PBM) Save(filename string) error {
 	file, err := os.Create(filename)
 	if err != nil {
@@ -98,22 +133,61 @@ func (pbm *PBM) Save(filename string) error {
 
 	writer := bufio.NewWriter(file)
 
-	// Write the magic number
-	fmt.Fprintln(writer, pbm.magicNumber)
-
-	// Write the image data
-	for _, row := range pbm.data {
-		for _, pixel := range row {
-			if pixel {
-				fmt.Fprint(writer, "1 ")
-			} else {
-				fmt.Fprint(writer, "0 ")
-			}
-		}
-		fmt.Fprintln(writer)
+	// Write magic number
+	_, err = fmt.Fprintf(writer, "%s\n", pbm.magicNumber)
+	if err != nil {
+		return fmt.Errorf("error writing magic number: %v", err)
 	}
 
-	return writer.Flush()
+	// Write dimensions
+	_, err = fmt.Fprintf(writer, "%d %d\n", pbm.width, pbm.height)
+	if err != nil {
+		return fmt.Errorf("error writing dimensions: %v", err)
+	}
+
+	if pbm.magicNumber == "P1" {
+		// Write P1 format (ASCII)
+		for y := 0; y < pbm.height; y++ {
+			for x := 0; x < pbm.width; x++ {
+				val := 0
+				if pbm.data[y][x] {
+					val = 1
+				}
+				_, err := fmt.Fprintf(writer, "%d ", val)
+				if err != nil {
+					return fmt.Errorf("error writing data at row %d, column %d: %v", y, x, err)
+				}
+			}
+			_, err := fmt.Fprint(writer, "\n")
+			if err != nil {
+				return fmt.Errorf("error writing newline at row %d: %v", y, err)
+			}
+		}
+	} else if pbm.magicNumber == "P4" {
+		// Write P4 format (binary)
+		bytesPerRow := (pbm.width + 7) / 8
+		for y := 0; y < pbm.height; y++ {
+			row := make([]byte, bytesPerRow)
+			for x := 0; x < pbm.width; x++ {
+				byteIndex := x / 8
+				bitIndex := 7 - (x % 8)
+				if pbm.data[y][x] {
+					row[byteIndex] |= 1 << bitIndex
+				}
+			}
+			_, err := writer.Write(row)
+			if err != nil {
+				return fmt.Errorf("error writing data at row %d: %v", y, err)
+			}
+		}
+	}
+
+	err = writer.Flush()
+	if err != nil {
+		return fmt.Errorf("error flushing writer: %v", err)
+	}
+
+	return nil
 }
 
 // Invert inverts the colors of the PBM image.
@@ -146,57 +220,4 @@ func (pbm *PBM) Flop() {
 // SetMagicNumber sets the magic number of the PBM image.
 func (pbm *PBM) SetMagicNumber(magicNumber string) {
 	pbm.magicNumber = magicNumber
-}
-
-// Helper function to reverse a boolean slice in place.
-func reverseBoolSlice(slice []bool) {
-	for i, j := 0, len(slice)-1; i < j; i, j = i+1, j-1 {
-		slice[i], slice[j] = slice[j], slice[i]
-	}
-}
-
-// Helper function to read P1 and P4 formats.
-func readP1P4(scanner *bufio.Scanner) (width, height int, data [][]bool, err error) {
-	// Read the image size
-	if !scanner.Scan() {
-		return 0, 0, nil, errors.New("missing image size")
-	}
-
-	size := strings.Split(scanner.Text(), " ")
-	if len(size) != 2 {
-		return 0, 0, nil, errors.New("invalid image size format")
-	}
-
-	width, err = strconv.Atoi(size[0])
-	if err != nil {
-		return 0, 0, nil, errors.New("invalid width")
-	}
-
-	height, err = strconv.Atoi(size[1])
-	if err != nil {
-		return 0, 0, nil, errors.New("invalid height")
-	}
-
-	// Read the image data
-	data = make([][]bool, height)
-	for i := range data {
-		data[i] = make([]bool, width)
-		if !scanner.Scan() {
-			return 0, 0, nil, errors.New("missing image data")
-		}
-
-		rowData := strings.Fields(scanner.Text())
-		if len(rowData) != width {
-			return 0, 0, nil, errors.New("invalid image data format")
-		}
-
-		for j, value := range rowData {
-			data[i][j], err = strconv.ParseBool(value)
-			if err != nil {
-				return 0, 0, nil, errors.New("invalid pixel value")
-			}
-		}
-	}
-
-	return width, height, data, nil
 }

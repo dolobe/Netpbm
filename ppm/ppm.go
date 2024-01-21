@@ -1,4 +1,4 @@
-package ppm
+package Netpbm
 
 import (
 	"bufio"

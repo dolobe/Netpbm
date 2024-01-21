@@ -344,7 +344,9 @@ func TestToPBM(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
+
 	pbm := pgm.ToPBM()
+
 	if pbm.magicNumber != "P2" {
 		t.Error("Magic number not set correctly")
 	}
@@ -357,9 +359,9 @@ func TestToPBM(t *testing.T) {
 	for i := 0; i < imagePGMWidth*imagePGMHeight; i++ {
 		x := i % imagePGMWidth
 		y := i / imagePGMWidth
-		if pbm.data[y][x] != pbm.data[y][x] != (testData[i] != 0) {
 
-			t.Errorf("Pixel at (%d, %d) not read correctly", x, y)
+		if pbm.data[y][x] != (testData[i] != 0) {
+			t.Errorf("Pixel at (%d, %d) not set correctly", x, y)
 		}
 	}
 }

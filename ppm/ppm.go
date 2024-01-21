@@ -251,6 +251,8 @@ func (ppm *PPM) ToPBM() *PBM {
 
 // DrawLine draws a line between two points.
 func (ppm *PPM) DrawLine(p1, p2 Point, color Pixel) {
+	// Use Bresenham's line algorithm to draw a line between two points.
+	// Bresenham's algorithm: https://en.wikipedia.org/wiki/Bresenham%27s_line_algorithm
 	dx := p2.X - p1.X
 	dy := p2.Y - p1.Y
 	x, y := p1.X, p1.Y
@@ -313,6 +315,8 @@ func (ppm *PPM) DrawFilledRectangle(p1 Point, width, height int, color Pixel) {
 
 // DrawCircle draws a circle.
 func (ppm *PPM) DrawCircle(center Point, radius int, color Pixel) {
+	// Use the midpoint circle algorithm to draw a circle.
+	// Midpoint circle algorithm: https://en.wikipedia.org/wiki/Midpoint_circle_algorithm
 	x, y, err := radius, 0, 0
 
 	for x >= y {

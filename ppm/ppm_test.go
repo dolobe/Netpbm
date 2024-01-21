@@ -570,7 +570,7 @@ func TestPPMToPBM(t *testing.T) {
 		t.Error(err)
 	}
 	pbm := ppm.ToPBM()
-	if pbm.magicNumber != "P1" {
+	if pbm.magicNumber != "P3" {
 		t.Error("Magic number not set correctly")
 	}
 	if pbm.width != imagePPMWidth {
